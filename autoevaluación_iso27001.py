@@ -4,6 +4,9 @@ from datetime import datetime
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 # Definir las descripciones de las rúbricas específicas para cada pregunta
 rubricas = {
@@ -128,7 +131,8 @@ class EvaluacionISO27001(tk.Tk):
             rating_label.pack(anchor='w', padx=10, pady=5)
 
             combobox.bind("<<ComboboxSelected>>",
-                          lambda event, rb=rubricas[aspecto][pregunta], lbl=rating_label: self.update_rating(event, rb, lbl))
+                          lambda event, rb=rubricas[aspecto][pregunta], lbl=rating_label: self.update_rating(event, rb,
+                                                                                                             lbl))
             self.calificaciones[aspecto].append((pregunta, combobox, rating_label))
 
     def update_rating(self, event, rubrica, label):
@@ -150,9 +154,12 @@ class EvaluacionISO27001(tk.Tk):
         self.solicitar_datos_generar_informe()
 
     def solicitar_datos_generar_informe(self):
-        self.nombre_compania = simpledialog.askstring("Nombre de la Compañía Evaluada", "Ingrese el nombre de la compañía evaluada:")
-        self.nombre_evaluador = simpledialog.askstring("Nombre y Apellido de la Persona que Evalúa", "Ingrese el nombre y apellido de la persona que evalúa:")
-        self.destinatario = simpledialog.askstring("Nombre y Apellido del Destinatario", "Ingrese el nombre y apellido del destinatario del informe:")
+        self.nombre_compania = simpledialog.askstring("Nombre de la Compañía Evaluada",
+                                                      "Ingrese el nombre de la compañía evaluada:")
+        self.nombre_evaluador = simpledialog.askstring("Nombre y Apellido de la Persona que Evalúa",
+                                                       "Ingrese el nombre y apellido de la persona que evalúa:")
+        self.destinatario = simpledialog.askstring("Nombre y Apellido del Destinatario",
+                                                   "Ingrese el nombre y apellido del destinatario del informe:")
 
         if not all([self.nombre_compania, self.nombre_evaluador, self.destinatario]):
             messagebox.showerror("Error", "Debe completar todos los campos para generar el informe.")
@@ -169,20 +176,25 @@ class EvaluacionISO27001(tk.Tk):
                     calificacion = int(rating_label.cget("text").split(": ")[1])
                     calificaciones_input[aspecto].append((pregunta, calificacion))
                 except ValueError:
-                    messagebox.showerror("Error de Calificación", "Por favor seleccione una descripción válida para todas las preguntas.")
+                    messagebox.showerror("Error de Calificación",
+                                         "Por favor seleccione una descripción válida para todas las preguntas.")
                     return
 
         for aspecto, lista in calificaciones_input.items():
             if len(lista) != len(rubricas[aspecto]):
-                messagebox.showerror("Error de Calificación", f"Debe calificar todas las preguntas en la categoría '{aspecto}' antes de generar el informe.")
+                messagebox.showerror("Error de Calificación",
+                                     f"Debe calificar todas las preguntas en la categoría '{aspecto}' antes de generar el informe.")
                 return
 
         promedios_ponderados, calificacion_final = procesar_calificaciones(calificaciones_input)
-        generar_informe_word(calificaciones_input, promedios_ponderados, calificacion_final, self.nombre_compania, self.nombre_evaluador, self.destinatario, self.fecha_evaluacion)
+        generar_informe_word(calificaciones_input, promedios_ponderados, calificacion_final,
+                             self.nombre_compania, self.nombre_evaluador,
+                             self.destinatario, self.fecha_evaluacion)
 
 
 def procesar_calificaciones(calificaciones):
-    promedios = {aspecto: sum(valores[1] for valores in lista) / len(lista) for aspecto, lista in calificaciones.items()}
+    promedios = {aspecto: sum(valores[1] for valores in lista) / len(lista) for aspecto, lista in
+                 calificaciones.items()}
     promedios_ponderados = {aspecto: (promedio / 5) * 20 for aspecto, promedio in promedios.items()}
     calificacion_final = sum(promedios_ponderados.values()) / len(promedios_ponderados) * 5
     return promedios_ponderados, calificacion_final
@@ -195,34 +207,50 @@ def generar_conclusion(calificacion_final):
                 "y gestión de incidentes de seguridad de la información. No existen políticas ni procedimientos documentados, "
                 "y los controles de seguridad son insuficientes o inexistentes, exponiendo la información a riesgos severos.")
     elif 26 <= calificacion_final <= 50:
-        return ("El departamento de sistemas tiene algunos controles y políticas en su lugar, pero estos no son suficientemente robustos "
-                "o no se aplican consistentemente. Existen políticas y procedimientos documentados en algunas áreas, pero pueden estar "
-                "desactualizados o no ser efectivos en la práctica. Los controles de seguridad física y ambiental, así como las medidas "
-                "de autenticación, se implementan de manera limitada, y las pruebas de vulnerabilidad y evaluaciones de riesgos se realizan "
-                "de forma irregular.")
+        return (
+            "El departamento de sistemas tiene algunos controles y políticas en su lugar, pero estos no son suficientemente robustos "
+            "o no se aplican consistentemente. Existen políticas y procedimientos documentados en algunas áreas, pero pueden estar "
+            "desactualizados o no ser efectivos en la práctica. Los controles de seguridad física y ambiental, así como las medidas "
+            "de autenticación, se implementan de manera limitada, y las pruebas de vulnerabilidad y evaluaciones de riesgos se realizan "
+            "de forma irregular.")
     elif 51 <= calificacion_final <= 75:
-        return ("El departamento de sistemas ha implementado la mayoría de los controles de seguridad requeridos por la norma ISO 27001. "
-                "Las políticas y procedimientos están documentados y se revisan regularmente. La seguridad física y ambiental es adecuada, "
-                "y los controles de autenticación son robustos para la mayoría de los sistemas críticos. Las pruebas de vulnerabilidad y "
-                "evaluaciones de riesgos se realizan de manera regular, aunque aún existen áreas que pueden mejorarse para alcanzar un nivel óptimo.")
+        return (
+            "El departamento de sistemas ha implementado la mayoría de los controles de seguridad requeridos por la norma ISO 27001. "
+            "Las políticas y procedimientos están documentados y se revisan regularmente. La seguridad física y ambiental es adecuada, "
+            "y los controles de autenticación son robustos para la mayoría de los sistemas críticos. Las pruebas de vulnerabilidad y "
+            "evaluaciones de riesgos se realizan de manera regular, aunque aún existen áreas que pueden mejorarse para alcanzar un nivel óptimo.")
     elif 76 <= calificacion_final <= 100:
-        return ("El departamento de sistemas cumple completamente con los requisitos de la norma ISO 27001, y además implementa medidas adicionales "
-                "que superan los estándares establecidos. Las políticas y procedimientos están completamente documentados y actualizados, y se revisan "
-                "periódicamente. La seguridad física y ambiental es robusta y se monitorea continuamente. Los controles de autenticación incluyen medidas "
-                "avanzadas como la autenticación multifactor, y las pruebas de vulnerabilidad y evaluaciones de riesgos se realizan de manera continua y "
-                "exhaustiva. La gestión de incidentes es proactiva, con simulacros y capacitaciones regulares que aseguran una preparación adecuada del personal.")
+        return (
+            "El departamento de sistemas cumple completamente con los requisitos de la norma ISO 27001, y además implementa medidas adicionales "
+            "que superan los estándares establecidos. Las políticas y procedimientos están completamente documentados y actualizados, y se revisan "
+            "periódicamente. La seguridad física y ambiental es robusta y se monitorea continuamente. Los controles de autenticación incluyen medidas "
+            "avanzadas como la autenticación multifactor, y las pruebas de vulnerabilidad y evaluaciones de riesgos se realizan de manera continua y "
+            "exhaustiva. La gestión de incidentes es proactiva, con simulacros y capacitaciones regulares que aseguran una preparación adecuada del personal.")
     else:
         return "Calificación no válida."
 
 
-def generar_informe_word(calificaciones, promedios_ponderados, calificacion_final, nombre_compania, nombre_evaluador, destinatario, fecha_evaluacion):
+def generar_informe_word(calificaciones, promedios_ponderados, calificacion_final, nombre_compania, nombre_evaluador,
+                         destinatario, fecha_evaluacion):
     document = Document()
 
     # Carátula
-    document.add_heading('Informe de Evaluación de Cumplimiento de la Norma ISO 27001 (Sistema de Gestión de Seguridad de la Información)', 0)
+    document.add_heading(
+        'Informe de Autoevaluación de Cumplimiento de la Norma ISO 27001 (Sistema de Gestión de Seguridad de la Información)',
+        0)
     document.add_paragraph(f'Compañía Evaluada: {nombre_compania}', style='Title')
     document.add_paragraph(f'Evaluador: {nombre_evaluador}', style='Heading 3')
     document.add_paragraph(f'Fecha de Evaluación: {fecha_evaluacion}', style='Heading 3')
+    document.add_page_break()
+
+    # Índice
+    document.add_heading('Índice', level=1)
+    document.add_paragraph('1. Carta de Introducción')
+    document.add_paragraph('2. Resultados de la Autoevaluación')
+    document.add_paragraph('3. Conclusión General')
+    document.add_paragraph('4. Anexo I: Detalles de la Evaluación')
+    document.add_paragraph('5. Gráficos')
+    document.add_page_break()
 
     # Carta de introducción
     document.add_heading('Carta de Introducción', level=1)
@@ -245,63 +273,17 @@ def generar_informe_word(calificaciones, promedios_ponderados, calificacion_fina
     document.add_paragraph(
         'Como resultado de esta evaluación preliminar, recomendamos encarecidamente llevar a cabo una auditoría exhaustiva por parte de profesionales calificados para valorar en detalle las vulnerabilidades e incumplimientos potenciales. Una auditoría completa permitirá implementar medidas correctivas adecuadas y asegurar que el sistema de gestión de seguridad de la información cumpla plenamente con la Norma ISO 27001.'
     )
-    document.add_heading('Resultados de la Autoevaluación', level=2)
+    document.add_page_break()
+
+    # Resultados de la autoevaluación
+    document.add_heading('Resultados de la Autoevaluación', level=1)
     document.add_paragraph(
         'Los resultados detallados de la autoevaluación se incluyen en el Anexo I siguiente. Esperamos que los resultados proporcionados por esta herramienta sean útiles para que su organización comience a tomar muy en serio la seguridad de su información. Esta herramienta está diseñada para ayudar a identificar vulnerabilidades y a iniciar el proceso de minimizarlas.'
     )
-    document.add_paragraph()
-    document.add_paragraph('Atentamente,')
-    document.add_paragraph(f'{nombre_evaluador}', style='Heading 3')
+    document.add_page_break()
 
-    # Descripción del objetivo de la norma
-    document.add_heading('Objetivo de la Norma ISO 27001', level=1)
-    document.add_paragraph(
-        "La norma ISO/IEC 27001 establece los requisitos para un sistema de gestión de seguridad de la información (SGSI), "
-        "incluyendo los aspectos relacionados con la implementación, el mantenimiento y la mejora continua del SGSI. "
-        "Su objetivo es proteger la información dentro de la organización, asegurando su confidencialidad, integridad y disponibilidad."
-    )
-
-    # Descripción de las dimensiones evaluadas
-    document.add_heading('Dimensiones Evaluadas', level=1)
-    document.add_paragraph(
-        "A continuación se detallan las diferentes dimensiones evaluadas en este informe, junto con una breve descripción de cada una:"
-    )
-
-    dimensiones = {
-        'Gestión de Acceso': "Evalúa la existencia y eficacia de políticas y procedimientos para la gestión de accesos, "
-                             "incluyendo controles de autenticación y autorización para proteger los sistemas críticos.",
-        'Seguridad Física y Ambiental': "Evalúa las medidas de seguridad física y controles ambientales implementados para proteger "
-                                        "los equipos e infraestructuras críticas de la organización.",
-        'Gestión de Comunicaciones y Operaciones': "Evalúa los procedimientos seguros para la transmisión de datos sensibles y las prácticas "
-                                                   "de gestión de operaciones para mantener la seguridad de la infraestructura de red.",
-        'Control de Acceso a la Información': "Evalúa los controles implementados para limitar el acceso a la información confidencial y crítica, "
-                                              "así como las políticas de clasificación y etiquetado de la información.",
-        'Gestión de Incidentes de Seguridad de la Información': "Evalúa la existencia y eficacia de procedimientos para la gestión de incidentes "
-                                                                "de seguridad, incluyendo la capacitación y los simulacros realizados para preparar al personal."
-    }
-
-    for dimension, descripcion in dimensiones.items():
-        document.add_heading(dimension, level=2)
-        document.add_paragraph(descripcion)
-
-    # Metodología de calificación
-    document.add_heading('Metodología de Calificación', level=1)
-    document.add_paragraph(
-        "La evaluación se basa en una escala de 1 a 5, donde cada valor representa el nivel de cumplimiento de la norma:"
-    )
-    calificacion_metodologia = {
-        1: "1 = No Cumple: No se realiza ninguna acción o la acción es insuficiente.",
-        2: "2 = Cumple Parcialmente: Las acciones se realizan pero no con la frecuencia o efectividad requerida.",
-        3: "3 = Cumple en Gran Medida: Las acciones se realizan regularmente y cumplen con la mayoría de los requisitos.",
-        4: "4 = Cumple Totalmente: Las acciones cumplen con todos los requisitos establecidos.",
-        5: "5 = Cumple y Supera las Expectativas: Se implementan medidas adicionales que superan los requisitos establecidos."
-    }
-
-    for key, value in calificacion_metodologia.items():
-        document.add_paragraph(value)
-
-    # Resultados de la evaluación
-    document.add_heading('Resultados de la Evaluación', level=1)
+    # Anexo I: Detalles de la evaluación
+    document.add_heading('Anexo I: Detalles de la Evaluación', level=1)
     for aspecto, preguntas in calificaciones.items():
         document.add_heading(aspecto, level=2)
         for pregunta, calificacion in preguntas:
@@ -311,25 +293,80 @@ def generar_informe_word(calificaciones, promedios_ponderados, calificacion_fina
             p.add_run(f'{calificacion} - {descripcion}')
         document.add_paragraph(f'Promedio del aspecto ({aspecto}): {promedios_ponderados[aspecto]:.2f} / 20')
         document.add_paragraph()
-
     document.add_paragraph(f'Calificación final del departamento de sistemas: {calificacion_final:.2f} / 100')
-    document.add_paragraph()
+    document.add_page_break()
 
     # Conclusión general
     conclusion = generar_conclusion(calificacion_final)
     document.add_heading('Conclusión General', level=1)
     document.add_paragraph(conclusion)
-    document.add_paragraph()
+    document.add_page_break()
+
+    # Gráficos
+    document.add_heading('Gráficos', level=1)
+
+    # Gráfico de barras
+    plt.figure(figsize=(10, 6))
+    aspectos = list(promedios_ponderados.keys())
+    valores = list(promedios_ponderados.values())
+    plt.barh(aspectos, valores, color='skyblue')
+    plt.xlabel('Nivel de Cumplimiento (sobre 20)')
+    plt.title('Gráfico de Nivel de Cumplimiento por Dimensión')
+    plt.savefig('grafico_barras.png')
+    plt.close()
+
+    # Insertar gráfico de barras
+    document.add_paragraph('Gráfico de Nivel de Cumplimiento por Dimensión')
+    document.add_picture('grafico_barras.png', width=Inches(6))
+    document.add_page_break()
+
+    # Gráfico de radar
+    labels = list(promedios_ponderados.keys())
+    stats = list(promedios_ponderados.values())
+
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    stats += stats[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    ax.fill(angles, stats, color='skyblue', alpha=0.25)
+    ax.plot(angles, stats, color='skyblue', linewidth=2)
+    ax.set_yticklabels([])
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels)
+    plt.title('Gráfico de Radar por Dimensión')
+    plt.savefig('grafico_radar.png')
+    plt.close()
+
+    # Insertar gráfico de radar
+    document.add_paragraph('Gráfico de Radar por Dimensión')
+    document.add_picture('grafico_radar.png', width=Inches(6))
+    document.add_page_break()
+
+    # Añadir texto al final del documento
+    document.add_paragraph(
+        'DeltechAudit es una Firma de Auditoría y Consultoría con 20 años de trayectoria. Podemos ayudarle a validar su autoauditoría. Escríbanos a ventas@smsauditores.ec')
+    document.add_page_break()
 
     # Añadir pie de página
-    section = document.sections[0]
-    footer = section.footer
-    footer_paragraph = footer.paragraphs[0]
-    footer_paragraph.text = f'www.deltechaudit.com - Fecha de Evaluación: {fecha_evaluacion}'
-    footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    for section in document.sections:
+        footer = section.footer
+        footer_paragraph = footer.paragraphs[0]
+        footer_paragraph.text = f'www.deltechaudit.com - Fecha de Evaluación: {fecha_evaluacion}'
+        footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    document.save('informe.docx')
-    messagebox.showinfo("Informe Generado", "El informe se ha generado correctamente en informe.docx")
+    # Numerar páginas a partir de la segunda página
+    for i, section in enumerate(document.sections):
+        if i > 0:
+            footer = section.footer
+            footer.is_linked_to_previous = False
+            footer_paragraph = footer.paragraphs[0]
+            footer_paragraph.text = f'Página {i + 1}'
+            footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    document.save('Autoevaluacion_Norma_ISO_27001.docx')
+    messagebox.showinfo("Informe Generado",
+                        "El informe se ha generado correctamente en Autoevaluacion_Norma_ISO_27001.docx")
 
 
 if __name__ == "__main__":
